@@ -1,0 +1,298 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard | Moha Duka POS</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+      rel="stylesheet"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link href="styles.css" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app">
+      <nav class="navbar navbar-expand-lg fixed-top">
+        <div class="container-fluid px-3 px-lg-4">
+          <a class="navbar-brand fw-bold" href="index.html">Moha Duka POS</a
+          ><button
+            class="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#nav"
+          >
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse justify-content-end" id="nav">
+            <ul class="navbar-nav gap-lg-1">
+              <li class="nav-item">
+                <a class="nav-link" href="index.html">Home</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="products.html">Products</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="purchases.html">Purchases</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="sales.html">Sales</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link active" href="dashboard.html">Dashboard</a>
+              </li>
+              <li class="nav-item">
+                <a
+                  class="nav-link text-danger fw-semibold"
+                  href="#"
+                  @click.prevent="logoutUser"
+                  >Logout</a
+                >
+              </li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+      <main class="page-wrap">
+        <div class="container px-3 px-lg-4">
+          <section class="hero-panel mb-4">
+            <div
+              class="d-flex flex-wrap align-items-center justify-content-between gap-3"
+            >
+              <div>
+                <h1 class="h3 fw-bold mb-1">Business Dashboard</h1>
+                <p class="page-subtitle mb-0">
+                  Live stock, sales and purchase metrics from Moha Duka API.
+                </p>
+              </div>
+              <button class="btn btn-outline-primary" @click="load">
+                <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+              </button>
+            </div>
+          </section>
+          <div class="alert app-alert mb-4 alert-danger" v-if="notice.show">
+            {{ notice.message }}
+          </div>
+          <section class="row g-3 mb-4">
+            <div class="col-6 col-lg-3">
+              <div class="metric-card">
+                <span
+                  class="metric-icon"
+                  style="background: rgba(99, 102, 241, 0.15); color: #a5b4fc"
+                  ><i class="bi bi-box-seam"></i
+                ></span>
+                <p class="metric-label">Products</p>
+                <p class="metric-value">{{ products.length }}</p>
+              </div>
+            </div>
+            <div class="col-6 col-lg-3">
+              <div class="metric-card">
+                <span
+                  class="metric-icon"
+                  style="background: rgba(16, 185, 129, 0.15); color: #6ee7b7"
+                  ><i class="bi bi-bag-check"></i
+                ></span>
+                <p class="metric-label">Purchases</p>
+                <p class="metric-value">{{ purchases.length }}</p>
+              </div>
+            </div>
+            <div class="col-6 col-lg-3">
+              <div class="metric-card">
+                <span
+                  class="metric-icon"
+                  style="background: rgba(245, 158, 11, 0.15); color: #fcd34d"
+                  ><i class="bi bi-graph-up-arrow"></i
+                ></span>
+                <p class="metric-label">Sales</p>
+                <p class="metric-value">{{ sales.length }}</p>
+              </div>
+            </div>
+            <div class="col-6 col-lg-3">
+              <div class="metric-card">
+                <span
+                  class="metric-icon"
+                  style="background: rgba(34, 211, 238, 0.15); color: #67e8f9"
+                  ><i class="bi bi-layers"></i
+                ></span>
+                <p class="metric-label">Remaining Units</p>
+                <p class="metric-value">{{ remainingTotal }}</p>
+              </div>
+            </div>
+          </section>
+          <section class="row g-4">
+            <div class="col-lg-8">
+              <div class="panel h-100">
+                <h2 class="h5 fw-bold mb-1">Remaining Stock</h2>
+                <p class="page-subtitle mb-3">
+                  Purchased units minus sold units for every product.
+                </p>
+                <div class="chart-box" v-if="labels.length">
+                  <canvas id="stockChart"></canvas>
+                </div>
+                <div class="empty-state" v-else>
+                  No stock data available yet.
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="panel h-100">
+                <h2 class="h5 fw-bold mb-1">Quick Totals</h2>
+                <p class="page-subtitle mb-3">Current shop snapshot.</p>
+                <div class="d-grid gap-3">
+                  <div class="metric-card">
+                    <p class="metric-label">Sales Value</p>
+                    <p class="metric-value">{{ formatMoney(salesValue) }}</p>
+                  </div>
+                  <div class="metric-card">
+                    <p class="metric-label">Purchased Units</p>
+                    <p class="metric-value">{{ purchasedUnits }}</p>
+                  </div>
+                  <div class="metric-card">
+                    <p class="metric-label">Sold Units</p>
+                    <p class="metric-value">{{ soldUnits }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+      <footer class="site-footer">&copy; 2026 Moha Duka POS</footer>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.7.7/vue.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.7.8/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="app.js"></script>
+    <script>
+      let stockChart = null;
+      new Vue({
+        el: "#app",
+        data: {
+          products: [],
+          purchases: [],
+          sales: [],
+          labels: [],
+          values: [],
+          notice: { show: false, message: "" },
+        },
+        computed: {
+          purchasedUnits() {
+            return this.purchases.reduce(
+              (s, p) => s + Number(p.stock_quantity || 0),
+              0,
+            );
+          },
+          soldUnits() {
+            return this.sales.reduce((s, p) => s + Number(p.quantity || 0), 0);
+          },
+          remainingTotal() {
+            return this.values.reduce((s, v) => s + Number(v || 0), 0);
+          },
+          salesValue() {
+            return this.sales.reduce((sum, s) => sum + this.saleTotal(s), 0);
+          },
+        },
+        methods: {
+          formatMoney: money,
+          logoutUser() {
+            logout();
+          },
+          saleTotal(sale) {
+            const p = this.products.find(
+              (x) => Number(x.id) === Number(sale.product_id),
+            );
+            return p
+              ? Number(sale.quantity || 0) * Number(p.selling_price || 0)
+              : 0;
+          },
+          async load() {
+            try {
+              this.notice.show = false;
+              const [products, purchases, sales] = await Promise.all([
+                apiRequest({ method: "get", url: "/products" }),
+                apiRequest({ method: "get", url: "/purchases" }),
+                apiRequest({ method: "get", url: "/sales" }),
+              ]);
+              this.products = products.data;
+              this.purchases = purchases.data;
+              this.sales = sales.data;
+              this.computeStock();
+              this.$nextTick(this.renderChart);
+            } catch (e) {
+              this.notice = {
+                show: true,
+                message: getErrorMessage(e, "Failed to load dashboard."),
+              };
+            }
+          },
+          computeStock() {
+            const bought = {};
+            const sold = {};
+            this.purchases.forEach((p) => {
+              const id = Number(p.product_id);
+              bought[id] = (bought[id] || 0) + Number(p.stock_quantity || 0);
+            });
+            this.sales.forEach((s) => {
+              const id = Number(s.product_id);
+              sold[id] = (sold[id] || 0) + Number(s.quantity || 0);
+            });
+            this.labels = this.products.map((p) => p.name);
+            this.values = this.products.map(
+              (p) => (bought[Number(p.id)] || 0) - (sold[Number(p.id)] || 0),
+            );
+          },
+          renderChart() {
+            if (stockChart) stockChart.destroy();
+            const canvas = document.getElementById("stockChart");
+            if (!canvas) return;
+            stockChart = new Chart(canvas, {
+              type: "bar",
+              data: {
+                labels: this.labels,
+                datasets: [
+                  {
+                    label: "Remaining units",
+                    data: this.values,
+                    backgroundColor: "rgba(99,102,241,.55)",
+                    borderColor: "#818cf8",
+                    borderWidth: 2,
+                    borderRadius: 8,
+                  },
+                ],
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: "#b5b3c8" } } },
+                scales: {
+                  x: {
+                    ticks: { color: "#a8b0c3" },
+                    grid: { color: "rgba(255,255,255,.04)" },
+                  },
+                  y: {
+                    beginAtZero: true,
+                    ticks: { color: "#a8b0c3" },
+                    grid: { color: "rgba(255,255,255,.04)" },
+                  },
+                },
+              },
+            });
+          },
+        },
+        mounted() {
+          if (requireLogin()) this.load();
+        },
+      });
+    </script>
+  </body>
+</html>
